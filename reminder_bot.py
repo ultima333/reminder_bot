@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Глобальна змінна для Application
-application = None
+application = None  # Тепер application оголошена як глобальна змінна
 
 # Словник для зберігання завдань
 tasks = {}
@@ -342,6 +342,6 @@ def initialize_bot():
     )
 
 if __name__ == '__main__':
-    initialize_bot()
+    initialize_bot()  # Ініціалізація бота перед запуском Flask
     # Запуск Flask сервера
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
