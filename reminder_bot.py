@@ -320,7 +320,8 @@ def webhook():
     application.update_queue.put(update)
     return 'ok'
 
-if __name__ == '__main__':
+def initialize_bot():
+    global application
     # Прописаний токен у коді
     TOKEN = "8197063148:AAHu3grk5UOnUqqjuTBmqAPvy-7TYfId4qk"
 
@@ -340,5 +341,7 @@ if __name__ == '__main__':
         webhook_url=f'https://your-render-app-url.onrender.com/{TOKEN}'
     )
 
+if __name__ == '__main__':
+    initialize_bot()
     # Запуск Flask сервера
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
