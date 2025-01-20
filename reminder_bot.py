@@ -318,10 +318,8 @@ def webhook():
     return 'ok'
 
 if __name__ == '__main__':
-    # Отримання токену зі змінних середовища
-    TOKEN = os.environ.get('TOKEN')
-    if not TOKEN:
-        raise ValueError("Токен не знайдено. Перевірте змінні середовища.")
+    # Прописаний токен у коді
+    TOKEN = "8197063148:AAHu3grk5UOnUqqjuTBmqAPvy-7TYfId4qk"
 
     # Створення додатку
     application = Application.builder().token(TOKEN).build()
