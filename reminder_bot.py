@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 # Створення Flask додатку
 app = Flask(__name__)
 
+# Глобальна змінна для Application
+application = None
+
 # Словник для зберігання завдань
 tasks = {}
 
