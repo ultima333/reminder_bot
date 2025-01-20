@@ -2,10 +2,19 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 from datetime import time
+import os
+from flask import Flask  # Додано Flask для створення HTTP-сервера
 
 # Налаштування логування
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Створення Flask додатку для фейкового порту
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running!"
 
 # Словник для зберігання завдань
 tasks = {}
@@ -307,13 +316,24 @@ async def remind_task(context: ContextTypes.DEFAULT_TYPE):
 
 # Основна функція
 def main():
-    application = Application.builder().token("8197063148:AAHu3grk5UOnUqqjuTBmqAPvy-7TYfId4qk").build()
+    # Отримання токену зі змінних середовища
+    TOKEN = os.environ.get('TOKEN')
+    if not TOKEN:
+        raise ValueError("Токен не знайдено. Перевірте змінні середовища.")
 
+    # Створення додатку
+    application = Application.builder().token(TOKEN).build()
+
+    # Додавання обробників команд
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button))
 
+    # Запуск бота
     application.run_polling()
 
 if __name__ == '__main__':
+    # Запуск Flask сервера
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    # Запуск бота
     main()
