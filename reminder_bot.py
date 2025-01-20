@@ -1,20 +1,16 @@
 import logging
+import os
+from datetime import time
+from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
-from datetime import time
-import os
-from flask import Flask  # Додано Flask для створення HTTP-сервера
 
 # Налаштування логування
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Створення Flask додатку для фейкового порту
+# Створення Flask додатку
 app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Bot is running!"
 
 # Словник для зберігання завдань
 tasks = {}
@@ -314,8 +310,14 @@ async def remind_task(context: ContextTypes.DEFAULT_TYPE):
                          f"👤 Призначено: {task['assigned_by']}"
                 )
 
-# Основна функція
-def main():
+# Ендпоінт для вебхуків
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    application.update_queue.put(update)
+    return 'ok'
+
+if __name__ == '__main__':
     # Отримання токену зі змінних середовища
     TOKEN = os.environ.get('TOKEN')
     if not TOKEN:
@@ -329,11 +331,13 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button))
 
-    # Запуск бота
-    application.run_polling()
+    # Встановлення вебхука
+    application.run_webhook(
+        listen='0.0.0.0',
+        port=int(os.environ.get('PORT', 5000)),
+        url_path=TOKEN,
+        webhook_url=f'https://your-render-app-url.onrender.com/{TOKEN}'
+    )
 
-if __name__ == '__main__':
     # Запуск Flask сервера
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-    # Запуск бота
-    main()
