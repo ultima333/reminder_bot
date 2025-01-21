@@ -3,7 +3,7 @@ import os
 from datetime import time
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
 # Налаштування логування
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -303,15 +303,24 @@ def webhook():
     application.update_queue.put(update)
     return 'ok'
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.error("Exception while handling an update:", exc_info=context.error)
+
 def initialize_bot():
     global application
     TOKEN = "8197063148:AAHu3grk5UOnUqqjuTBmqAPvy-7TYfId4qk"
-    application = Application.builder().token(TOKEN).build()
+    application = ApplicationBuilder().token(TOKEN).read_timeout(30).write_timeout(30).build()
 
     # Додавання обробників команд
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button))
+
+    # Встановлення JobQueue
+    application.job_queue.run_repeating(callback=remind_task, interval=3600, first=0)
+
+    # Обробник помилок
+    application.add_error_handler(error_handler)
 
     # Встановлення вебхука
     application.run_webhook(
