@@ -341,11 +341,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 def initialize_bot():
     global application
-    TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-    if not TOKEN:
-        logger.error("Не вказано токен бота у змінній середовища TELEGRAM_BOT_TOKEN.")
-        exit(1)
-
+    TOKEN = "8197063148:AAHu3grk5UOnUqqjuTBmqAPvy-7TYfId4qk"
     application = ApplicationBuilder().token(TOKEN).read_timeout(30).write_timeout(30).build()
 
     # Додавання обробників команд
