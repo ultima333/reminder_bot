@@ -1,4 +1,3 @@
-python-telegram-bot[job-queue,webhooks]==20.0
+python-telegram-bot[webhooks,job-queue]
 Flask
 gunicorn
-pytz

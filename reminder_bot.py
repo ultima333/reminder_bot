@@ -1,10 +1,9 @@
 import logging
 import os
-from datetime import time, datetime
+from datetime import time
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
-import pytz  # Додано для роботи з часовими поясами
 
 # Налаштування логування
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -269,39 +268,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Не вдалося надіслати повідомлення користувачу: {e}")
 
-        # Налаштування нагадувань з урахуванням часового поясу України
-        ukraine_tz = pytz.timezone('Europe/Kiev')
-
         if priority == 'urgent':
-            context.job_queue.run_repeating(
-                remind_task, 
-                interval=3600, 
-                first=0, 
-                chat_id=assigned_user, 
-                data=assigned_user, 
-                name='urgent',
-                timezone=ukraine_tz
-            )
+            context.job_queue.run_repeating(remind_task, interval=3600, first=0, chat_id=assigned_user, data=assigned_user, name='urgent')
         elif priority == 'medium':
-            context.job_queue.run_repeating(
-                remind_task, 
-                interval=21600, 
-                first=0, 
-                chat_id=assigned_user, 
-                data=assigned_user, 
-                name='medium',
-                timezone=ukraine_tz
-            )
+            context.job_queue.run_repeating(remind_task, interval=21600, first=0, chat_id=assigned_user, data=assigned_user, name='medium')
         elif priority == 'low':
-            reminder_time = time(9, 0, 0)  # 9:00 ранку за київським часом
-            context.job_queue.run_daily(
-                remind_task, 
-                time=reminder_time, 
-                chat_id=assigned_user, 
-                data=assigned_user, 
-                name='low',
-                timezone=ukraine_tz
-            )
+            reminder_time = time(9, 0, 0)
+            context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=assigned_user, name='low')
 
         await query.edit_message_text(text=f"Завдання додано для {user_data[assigned_user]['username']} з пріоритетом {priority_translation[priority]}!")
         context.user_data.clear()
@@ -311,12 +284,6 @@ async def remind_task(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     assigned_user = job.data
     priority = job.name
-
-    # Отримуємо поточний час у часовому поясі України
-    ukraine_tz = pytz.timezone('Europe/Kiev')
-    current_time = datetime.now(ukraine_tz).time()
-
-    logger.info(f"Нагадування для користувача {assigned_user} з пріоритетом {priority} (Час: {current_time})")
 
     if assigned_user in tasks and tasks[assigned_user]:
         for task in tasks[assigned_user]:
