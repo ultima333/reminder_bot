@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import time
+from datetime import time, datetime
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
@@ -285,16 +285,27 @@ async def remind_task(context: ContextTypes.DEFAULT_TYPE):
     assigned_user = job.data
     priority = job.name
 
-    if assigned_user in tasks and tasks[assigned_user]:
-        for task in tasks[assigned_user]:
-            if task['priority'] == priority:
-                await context.bot.send_message(
-                    chat_id=context.job.chat_id,
-                    text=f"⏰ Нагадування для {user_data[assigned_user]['username']}:\n\n"
-                         f"📝 Завдання: {task['task_text']}\n"
-                         f"🚦 Пріоритет: {priority_translation[task['priority']]}\n"
-                         f"👤 Призначено: {task['assigned_by']}"
-                )
+    # Поточний час
+    now = datetime.now().time()
+
+    # Робочий час: з 11:00 до 24:00
+    start_time = time(11, 0, 0)
+    end_time = time(23, 59, 59)
+
+    # Перевірка, чи поточний час знаходиться в робочому діапазоні
+    if start_time <= now <= end_time:
+        if assigned_user in tasks and tasks[assigned_user]:
+            for task in tasks[assigned_user]:
+                if task['priority'] == priority:
+                    await context.bot.send_message(
+                        chat_id=context.job.chat_id,
+                        text=f"⏰ Нагадування для {user_data[assigned_user]['username']}:\n\n"
+                             f"📝 Завдання: {task['task_text']}\n"
+                             f"🚦 Пріоритет: {priority_translation[task['priority']]}\n"
+                             f"👤 Призначено: {task['assigned_by']}"
+                    )
+    else:
+        logger.info(f"Нагадування не відправлено, бо зараз поза робочим часом: {now}")
 
 # Ендпоінт для вебхуків
 @app.route('/webhook', methods=['POST'])
