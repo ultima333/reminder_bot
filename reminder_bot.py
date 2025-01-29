@@ -273,7 +273,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif priority == 'medium':
             context.job_queue.run_repeating(remind_task, interval=21600, first=0, chat_id=assigned_user, data=assigned_user, name='medium')
         elif priority == 'low':
-            reminder_time = time(07, 0, 0)
+            reminder_time = time(7, 0, 0)
             context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=assigned_user, name='low')
 
         await query.edit_message_text(text=f"Завдання додано для {user_data[assigned_user]['username']} з пріоритетом {priority_translation[priority]}!")
@@ -289,7 +289,7 @@ async def remind_task(context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now().time()
 
     # Робочий час: з 7:00 до 20:00
-    start_time = time(07, 0, 0)
+    start_time = time(7, 0, 0)
     end_time = time(19, 59, 59)
 
     # Перевірка, чи поточний час знаходиться в робочому діапазоні
