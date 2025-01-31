@@ -264,7 +264,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not any(job.data[0] == assigned_user and job.data[1] == priority for job in existing_jobs):
                 context.job_queue.run_repeating(remind_task, interval=21600, first=0, chat_id=assigned_user, data=(assigned_user, priority), name=f'medium_{assigned_user}')
         elif priority == 'low':
-            reminder_time = time(22, 2, 5)
+            reminder_time = time(18, 3, 5)
             existing_jobs = context.job_queue.get_jobs_by_name(f'low_{assigned_user}')
             if not any(job.data[0] == assigned_user and job.data[1] == priority for job in existing_jobs):
                 context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=(assigned_user, priority), name=f'low_{assigned_user}')
