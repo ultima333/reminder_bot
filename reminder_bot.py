@@ -34,18 +34,18 @@ priority_translation = {
     'low': 'Низький'
 }
 
+# Функція для перевірки та ініціалізації користувача
+async def ensure_user_initialized(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in user_data:
+        await start(update, context)
+
 # Головне меню
 def main_menu_keyboard():
     return ReplyKeyboardMarkup([
         ['📝 Додати завдання', '✅ Завершити завдання'],
         ['📋 Мої завдання', '🚫 Не можу виконати']
     ], resize_keyboard=True)
-
-# Функція для перевірки та ініціалізації користувача
-async def ensure_user_initialized(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if user_id not in user_data:
-        await start(update, context)
 
 # Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -254,21 +254,32 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"Не вдалося надіслати повідомлення користувачу: {e}")
+        
         if priority == 'urgent':
-            context.job_queue.run_repeating(remind_task, interval=3600, first=0, chat_id=assigned_user, data=assigned_user, name='urgent')
+            existing_jobs = context.job_queue.get_jobs_by_name(f'urgent_{assigned_user}')
+            if not any(job.data[0] == assigned_user and job.data[1] == priority for job in existing_jobs):
+                context.job_queue.run_repeating(remind_task, interval=3600, first=0, chat_id=assigned_user, data=(assigned_user, priority), name=f'urgent_{assigned_user}')
         elif priority == 'medium':
-            context.job_queue.run_repeating(remind_task, interval=21600, first=0, chat_id=assigned_user, data=assigned_user, name='medium')
+            existing_jobs = context.job_queue.get_jobs_by_name(f'medium_{assigned_user}')
+            if not any(job.data[0] == assigned_user and job.data[1] == priority for job in existing_jobs):
+                context.job_queue.run_repeating(remind_task, interval=21600, first=0, chat_id=assigned_user, data=(assigned_user, priority), name=f'medium_{assigned_user}')
         elif priority == 'low':
             reminder_time = time(7, 0, 0)
-            context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=assigned_user, name='low')
+            existing_jobs = context.job_queue.get_jobs_by_name(f'low_{assigned_user}')
+            if not any(job.data[0] == assigned_user and job.data[1] == priority for job in existing_jobs):
+                context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=(assigned_user, priority), name=f'low_{assigned_user}')
+        
         await query.edit_message_text(text=f"Завдання додано для {user_data[assigned_user]['username']} з пріоритетом {priority_translation[priority]}!")
         context.user_data.clear()
 
 # Функція для нагадування
 async def remind_task(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
-    assigned_user = job.data
-    priority = job.name
+    assigned_user, priority = job.data
+    # Логування часу виклику
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    logger.info(f"Remind task triggered at {current_time} for user {assigned_user} with priority {priority}")
+
     # Поточний час
     now = datetime.now().time()
     # Робочий час: з 7:00 до 20:00
@@ -279,13 +290,18 @@ async def remind_task(context: ContextTypes.DEFAULT_TYPE):
         if assigned_user in tasks and tasks[assigned_user]:
             for task in tasks[assigned_user]:
                 if task['priority'] == priority:
-                    await context.bot.send_message(
-                        chat_id=context.job.chat_id,
-                        text=f"⏰ Нагадування для {user_data[assigned_user]['username']}:\n\n"
-                             f"📝 Завдання: {task['task_text']}\n"
-                             f"🚦 Пріоритет: {priority_translation[task['priority']]}\n"
-                             f"👤 Призначено: {task['assigned_by']}"
-                    )
+                    try:
+                        await context.bot.send_message(
+                            chat_id=context.job.chat_id,
+                            text=f"⏰ Нагадування для {user_data[assigned_user]['username']}:\n\n"
+                                 f"📝 Завдання: {task['task_text']}\n"
+                                 f"🚦 Пріоритет: {priority_translation[task['priority']]}\n"
+                                 f"👤 Призначено: {task['assigned_by']}"
+                        )
+                    except Exception as e:
+                        logger.error(f"Не вдалося надіслати нагадування для користувача {assigned_user}: {e}")
+        else:
+            logger.warning(f"No tasks found for user {assigned_user} with priority {priority}")
     else:
         logger.info(f"Нагадування не відправлено, бо зараз поза робочим часом: {now}")
 
@@ -307,11 +323,8 @@ def initialize_bot():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button))
-    application.add_handler(CommandHandler("tasks", show_tasks))
-    application.add_handler(CommandHandler("completetask", complete_task))
-    application.add_handler(CommandHandler("addtask", add_task))
     # Встановлення JobQueue
-    application.job_queue.run_repeating(callback=remind_task, interval=3600, first=0)
+    # application.job_queue.run_repeating(callback=remind_task, interval=3600, first=0) # Цей рядок можна видалити, оскільки він створює лишні Job-и
     # Обробник помилок
     application.add_error_handler(error_handler)
     # Встановлення вебхука
