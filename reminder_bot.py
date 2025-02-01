@@ -306,7 +306,7 @@ def ping():
 async def ping_server(context: ContextTypes.DEFAULT_TYPE):
     webhook_url = f'https://reminder-bot-1tlk.onrender.com/ping'
     try:
-        response = requests.get(webhook_url, timeout=10)
+        response = requests.get(webhook_url, timeout=20)
         if response.status_code == 200:
             logger.info("Server ping successful.")
         else:
