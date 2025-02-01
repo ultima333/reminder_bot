@@ -65,16 +65,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Команда /tasks
 async def show_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_user_initialized(update, context)  # Перевірка та ініціалізація користувача
-
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб переглянути завдання.")
         return
-
     user_id = update.effective_user.id
     if user_id not in tasks or not tasks[user_id]:
         await update.message.reply_text("У вас немає активних завдань.")
         return
-
     tasks_list = []
     for task in tasks[user_id]:
         tasks_list.append(f"📝 {task['task_text']} ({priority_translation[task['priority']]})\n   👤 Призначено: {task['assigned_by']}")
@@ -83,16 +80,13 @@ async def show_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Команда /completetask
 async def complete_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_user_initialized(update, context)  # Перевірка та ініціалізація користувача
-
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб завершити завдання.")
         return
-
     user_id = update.effective_user.id
     if user_id not in tasks or not tasks[user_id]:
         await update.message.reply_text("У вас немає активних завдань.")
         return
-
     keyboard = []
     for index, task in enumerate(tasks[user_id]):
         keyboard.append([InlineKeyboardButton(f"{task['task_text']} ({priority_translation[task['priority']]})", callback_data=f"complete_{index}")])
@@ -102,16 +96,13 @@ async def complete_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Команда "Не можу виконати"
 async def cannot_complete_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_user_initialized(update, context)  # Перевірка та ініціалізація користувача
-
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб використати цю команду.")
         return
-
     user_id = update.effective_user.id
     if user_id not in tasks or not tasks[user_id]:
         await update.message.reply_text("У вас немає активних завдань.")
         return
-
     keyboard = []
     for index, task in enumerate(tasks[user_id]):
         keyboard.append([InlineKeyboardButton(f"{task['task_text']} ({priority_translation[task['priority']]})", callback_data=f"cannot_complete_{index}")])
@@ -121,10 +112,8 @@ async def cannot_complete_task(update: Update, context: ContextTypes.DEFAULT_TYP
 # Обробник текстових повідомлень (для кнопок головного меню)
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_user_initialized(update, context)  # Перевірка та ініціалізація користувача
-
     if update.message.chat.type != "private":
         return
-
     text = update.message.text
     if text == '📝 Додати завдання':
         await add_task(update, context)
@@ -176,11 +165,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Команда /addtask
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await ensure_user_initialized(update, context)  # Перевірка та ініціалізація користувача
-
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб додати завдання.")
         return
-
     keyboard = [
         [InlineKeyboardButton("Собі", callback_data=f"assign_{update.effective_user.id}")]
     ]
@@ -254,7 +241,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"Не вдалося надіслати повідомлення користувачу: {e}")
-        
         if priority == 'urgent':
             existing_jobs = context.job_queue.get_jobs_by_name(f'urgent_{assigned_user}')
             if not any(job.data[0] == assigned_user and job.data[1] == priority for job in existing_jobs):
@@ -268,7 +254,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             existing_jobs = context.job_queue.get_jobs_by_name(f'low_{assigned_user}')
             if not any(job.data[0] == assigned_user and job.data[1] == priority for job in existing_jobs):
                 context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=(assigned_user, priority), name=f'low_{assigned_user}')
-        
         await query.edit_message_text(text=f"Завдання додано для {user_data[assigned_user]['username']} з пріоритетом {priority_translation[priority]}!")
         context.user_data.clear()
 
@@ -279,7 +264,6 @@ async def remind_task(context: ContextTypes.DEFAULT_TYPE):
     # Логування часу виклику
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     logger.info(f"Remind task triggered at {current_time} for user {assigned_user} with priority {priority}")
-
     # Поточний час
     now = datetime.now().time()
     # Робочий час: з 7:00 до 20:00
@@ -305,10 +289,6 @@ async def remind_task(context: ContextTypes.DEFAULT_TYPE):
     else:
         logger.info(f"Нагадування не відправлено, бо зараз поза робочим часом: {now}")
 
-# Функція для пінгування
-async def ping(context: ContextTypes.DEFAULT_TYPE):
-    logger.info("Pinging to keep the bot awake...")
-
 # Ендпоінт для вебхуків
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -316,21 +296,31 @@ def webhook():
     application.update_queue.put(update)
     return 'ok'
 
+# Функція для підтримки активності сервера
+async def keep_alive(context: ContextTypes.DEFAULT_TYPE):
+    logger.info("Server is alive. Performing periodic check.")
+
+# Обробник помилок
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Exception while handling an update:", exc_info=context.error)
 
+# Ініціалізація бота
 def initialize_bot():
     global application
     TOKEN = "8197063148:AAHu3grk5UOnUqqjuTBmqAPvy-7TYfId4qk"
     application = ApplicationBuilder().token(TOKEN).read_timeout(30).write_timeout(30).build()
+
     # Додавання обробників команд
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button))
-    # Встановлення JobQueue для пінгування кожні 10 хвилин
-    application.job_queue.run_repeating(ping, interval=600, first=0)
+
+    # Встановлення JobQueue для підтримки активності сервера
+    application.job_queue.run_repeating(keep_alive, interval=600, first=10)  # Кожні 10 хвилин (600 секунд)
+
     # Обробник помилок
     application.add_error_handler(error_handler)
+
     # Встановлення вебхука
     application.run_webhook(
         listen='0.0.0.0',
