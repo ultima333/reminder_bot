@@ -296,6 +296,11 @@ def webhook():
     application.update_queue.put(update)
     return 'ok'
 
+# Новий ендпоінт для кореневого шляху
+@app.route('/', methods=['GET'])
+def home():
+    return "Bot is running!"
+
 # Функція для підтримки активності сервера
 async def keep_alive(context: ContextTypes.DEFAULT_TYPE):
     logger.info("Server is alive. Performing periodic check.")
