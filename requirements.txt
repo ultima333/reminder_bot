@@ -1,4 +1,3 @@
-python-telegram-bot[webhooks,job-queue]
-Flask
-gunicorn
+flask
+python-telegram-bot[job-queue]
 requests
