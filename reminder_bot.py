@@ -3,7 +3,14 @@ import os
 from datetime import time, datetime
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+    MessageHandler,
+    filters
+)
 
 # Налаштування логування
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -46,13 +53,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб додати завдання.")
         return
-
     user = update.effective_user
     user_data[user.id] = {
         'username': user.username,
         'chat_id': user.id
     }
-
     await update.message.reply_text(
         "Вітаю! Оберіть дію:",
         reply_markup=main_menu_keyboard()
@@ -63,17 +68,13 @@ async def show_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб переглянути завдання.")
         return
-
     user_id = update.effective_user.id
-
     if user_id not in tasks or not tasks[user_id]:
         await update.message.reply_text("У вас немає активних завдань.")
         return
-
     tasks_list = []
     for task in tasks[user_id]:
         tasks_list.append(f"📝 {task['task_text']} ({priority_translation[task['priority']]})\n   👤 Призначено: {task['assigned_by']}")
-
     await update.message.reply_text("Ваші активні завдання:\n\n" + "\n".join(tasks_list))
 
 # Команда /completetask
@@ -81,17 +82,13 @@ async def complete_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб завершити завдання.")
         return
-
     user_id = update.effective_user.id
-
     if user_id not in tasks or not tasks[user_id]:
         await update.message.reply_text("У вас немає активних завдань.")
         return
-
     keyboard = []
     for index, task in enumerate(tasks[user_id]):
         keyboard.append([InlineKeyboardButton(f"{task['task_text']} ({priority_translation[task['priority']]})", callback_data=f"complete_{index}")])
-
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Оберіть завдання для завершення:", reply_markup=reply_markup)
 
@@ -100,17 +97,13 @@ async def cannot_complete_task(update: Update, context: ContextTypes.DEFAULT_TYP
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб використати цю команду.")
         return
-
     user_id = update.effective_user.id
-
     if user_id not in tasks or not tasks[user_id]:
         await update.message.reply_text("У вас немає активних завдань.")
         return
-
     keyboard = []
     for index, task in enumerate(tasks[user_id]):
         keyboard.append([InlineKeyboardButton(f"{task['task_text']} ({priority_translation[task['priority']]})", callback_data=f"cannot_complete_{index}")])
-
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Оберіть завдання, яке ви не можете виконати:", reply_markup=reply_markup)
 
@@ -118,9 +111,7 @@ async def cannot_complete_task(update: Update, context: ContextTypes.DEFAULT_TYP
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         return
-
     text = update.message.text
-
     if text == '📝 Додати завдання':
         await add_task(update, context)
     elif text == '✅ Завершити завдання':
@@ -131,11 +122,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await cannot_complete_task(update, context)
     else:
         user_state = context.user_data.get('state')
-
         if user_state == STATE_ENTER_TASK:
             task_text = update.message.text
             context.user_data['task_text'] = task_text
-
             keyboard = [
                 [InlineKeyboardButton("Терміново", callback_data='urgent')],
                 [InlineKeyboardButton("Середній", callback_data='medium')],
@@ -144,17 +133,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text("Оберіть пріоритет завдання:", reply_markup=reply_markup)
             context.user_data['state'] = STATE_SELECT_PRIORITY
-
         elif user_state == STATE_CANNOT_COMPLETE:
             reason = update.message.text
             task_index = context.user_data.get('cannot_complete_task_index')
-
             if task_index is not None:
                 user_id = update.effective_user.id
                 if user_id in tasks and 0 <= task_index < len(tasks[user_id]):
                     task = tasks[user_id][task_index]
                     assigned_by_id = task['assigned_by_id']
-
                     try:
                         await context.bot.send_message(
                             chat_id=assigned_by_id,
@@ -165,14 +151,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         )
                     except Exception as e:
                         logger.error(f"Не вдалося надіслати повідомлення користувачу {assigned_by_id}: {e}")
-
                     tasks[user_id].pop(task_index)
                     await update.message.reply_text("Завдання видалено через неможливість виконання.")
                 else:
                     await update.message.reply_text("Помилка: завдання не знайдено.")
             else:
                 await update.message.reply_text("Помилка: не вдалося обробити завдання.")
-
             context.user_data.clear()
 
 # Команда /addtask
@@ -180,16 +164,13 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб додати завдання.")
         return
-
     keyboard = [
         [InlineKeyboardButton("Собі", callback_data=f"assign_{update.effective_user.id}")]
     ]
-
     for user_id, data in user_data.items():
         if user_id != update.effective_user.id:
             username = data['username'] if data['username'] else f"Користувач {user_id}"
             keyboard.append([InlineKeyboardButton(username, callback_data=f"assign_{user_id}")])
-
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Оберіть користувача, якому хочете призначити завдання:", reply_markup=reply_markup)
     context.user_data['state'] = STATE_SELECT_USER
@@ -198,21 +179,17 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     if query.data.startswith("assign_"):
         assigned_user_id = int(query.data.split("_")[1])
         context.user_data['assigned_user'] = assigned_user_id
         await query.edit_message_text(text="Введіть текст завдання:")
         context.user_data['state'] = STATE_ENTER_TASK
-
     elif query.data.startswith("complete_"):
         index = int(query.data.split("_")[1])
         user_id = query.from_user.id
-
         if user_id in tasks and 0 <= index < len(tasks[user_id]):
             completed_task = tasks[user_id].pop(index)
             await query.edit_message_text(text=f"Завдання завершено: {completed_task['task_text']} ({priority_translation[completed_task['priority']]})")
-
             assigned_by_id = completed_task['assigned_by_id']
             if assigned_by_id in user_data:
                 assigned_by_username = user_data[assigned_by_id]['username']
@@ -227,35 +204,28 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     logger.error(f"Не вдалося надіслати повідомлення користувачу {assigned_by_id}: {e}")
         else:
             await query.edit_message_text(text="Помилка: завдання не знайдено.")
-
     elif query.data.startswith("cannot_complete_"):
         index = int(query.data.split("_")[2])
         user_id = query.from_user.id
-
         if user_id in tasks and 0 <= index < len(tasks[user_id]):
             context.user_data['cannot_complete_task_index'] = index
             await query.edit_message_text(text="Будь ласка, введіть причину, чому ви не можете виконати це завдання:")
             context.user_data['state'] = STATE_CANNOT_COMPLETE
         else:
             await query.edit_message_text(text="Помилка: завдання не знайдено.")
-
     else:
         priority = query.data
         context.user_data['priority'] = priority
-
         assigned_user = context.user_data['assigned_user']
         task_text = context.user_data['task_text']
-
         if assigned_user not in tasks:
             tasks[assigned_user] = []
-
         tasks[assigned_user].append({
             'task_text': task_text,
             'priority': priority,
             'assigned_by': f"@{query.from_user.username}" if query.from_user.username else f"Користувач {query.from_user.id}",
             'assigned_by_id': query.from_user.id
         })
-
         try:
             await context.bot.send_message(
                 chat_id=assigned_user,
@@ -267,7 +237,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"Не вдалося надіслати повідомлення користувачу: {e}")
-
         if priority == 'urgent':
             context.job_queue.run_repeating(remind_task, interval=3600, first=0, chat_id=assigned_user, data=assigned_user, name='urgent')
         elif priority == 'medium':
@@ -275,7 +244,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif priority == 'low':
             reminder_time = time(7, 0, 0)
             context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=assigned_user, name='low')
-
         await query.edit_message_text(text=f"Завдання додано для {user_data[assigned_user]['username']} з пріоритетом {priority_translation[priority]}!")
         context.user_data.clear()
 
@@ -284,14 +252,11 @@ async def remind_task(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
     assigned_user = job.data
     priority = job.name
-
     # Поточний час
     now = datetime.now().time()
-
     # Робочий час: з 7:00 до 20:00
     start_time = time(7, 0, 0)
     end_time = time(19, 59, 59)
-
     # Перевірка, чи поточний час знаходиться в робочому діапазоні
     if start_time <= now <= end_time:
         if assigned_user in tasks and tasks[assigned_user]:
@@ -320,19 +285,27 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 def initialize_bot():
     global application
     TOKEN = "8197063148:AAHu3grk5UOnUqqjuTBmqAPvy-7TYfId4qk"
-    application = ApplicationBuilder().token(TOKEN).read_timeout(30).write_timeout(30).build()
-
+    application = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .read_timeout(30)
+        .write_timeout(30)
+        .post_init(lambda app: app.job_queue.start())  # Ініціалізація JobQueue
+        .build()
+    )
+    
     # Додавання обробників команд
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button))
-
+    
     # Встановлення JobQueue
-    application.job_queue.run_repeating(callback=remind_task, interval=3600, first=0)
-
+    if application.job_queue:
+        application.job_queue.run_repeating(callback=remind_task, interval=3600, first=0)
+    
     # Обробник помилок
     application.add_error_handler(error_handler)
-
+    
     # Встановлення вебхука
     application.run_webhook(
         listen='0.0.0.0',
