@@ -53,11 +53,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб додати завдання.")
         return
+    
     user = update.effective_user
-    user_data[user.id] = {
-        'username': user.username,
-        'chat_id': user.id
-    }
+    # Додавання користувача до user_data, якщо його там немає
+    if user.id not in user_data:
+        user_data[user.id] = {
+            'username': user.username if user.username else f"Користувач {user.id}",
+            'chat_id': user.id
+        }
+    
     await update.message.reply_text(
         "Вітаю! Оберіть дію:",
         reply_markup=main_menu_keyboard()
@@ -68,10 +72,12 @@ async def show_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб переглянути завдання.")
         return
+    
     user_id = update.effective_user.id
     if user_id not in tasks or not tasks[user_id]:
         await update.message.reply_text("У вас немає активних завдань.")
         return
+    
     tasks_list = []
     for task in tasks[user_id]:
         tasks_list.append(f"📝 {task['task_text']} ({priority_translation[task['priority']]})\n   👤 Призначено: {task['assigned_by']}")
@@ -82,10 +88,12 @@ async def complete_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб завершити завдання.")
         return
+    
     user_id = update.effective_user.id
     if user_id not in tasks or not tasks[user_id]:
         await update.message.reply_text("У вас немає активних завдань.")
         return
+    
     keyboard = []
     for index, task in enumerate(tasks[user_id]):
         keyboard.append([InlineKeyboardButton(f"{task['task_text']} ({priority_translation[task['priority']]})", callback_data=f"complete_{index}")])
@@ -97,10 +105,12 @@ async def cannot_complete_task(update: Update, context: ContextTypes.DEFAULT_TYP
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб використати цю команду.")
         return
+    
     user_id = update.effective_user.id
     if user_id not in tasks or not tasks[user_id]:
         await update.message.reply_text("У вас немає активних завдань.")
         return
+    
     keyboard = []
     for index, task in enumerate(tasks[user_id]):
         keyboard.append([InlineKeyboardButton(f"{task['task_text']} ({priority_translation[task['priority']]})", callback_data=f"cannot_complete_{index}")])
@@ -111,6 +121,7 @@ async def cannot_complete_task(update: Update, context: ContextTypes.DEFAULT_TYP
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         return
+    
     text = update.message.text
     if text == '📝 Додати завдання':
         await add_task(update, context)
@@ -164,6 +175,15 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
         await update.message.reply_text("Будь ласка, напишіть мені в приватні повідомлення, щоб додати завдання.")
         return
+    
+    # Додавання користувача до user_data, якщо його там немає
+    user = update.effective_user
+    if user.id not in user_data:
+        user_data[user.id] = {
+            'username': user.username if user.username else f"Користувач {user.id}",
+            'chat_id': user.id
+        }
+    
     keyboard = [
         [InlineKeyboardButton("Собі", callback_data=f"assign_{update.effective_user.id}")]
     ]
@@ -218,6 +238,14 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['priority'] = priority
         assigned_user = context.user_data['assigned_user']
         task_text = context.user_data['task_text']
+
+        # Перевірка, чи існує користувач у user_data
+        if assigned_user not in user_data:
+            user_data[assigned_user] = {
+                'username': f"Користувач {assigned_user}",  # Замінне значення, якщо username недоступний
+                'chat_id': assigned_user
+            }
+
         if assigned_user not in tasks:
             tasks[assigned_user] = []
         tasks[assigned_user].append({
@@ -244,6 +272,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif priority == 'low':
             reminder_time = time(7, 0, 0)
             context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=assigned_user, name='low')
+
+        # Використання username з user_data
         await query.edit_message_text(text=f"Завдання додано для {user_data[assigned_user]['username']} з пріоритетом {priority_translation[priority]}!")
         context.user_data.clear()
 
