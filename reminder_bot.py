@@ -311,7 +311,7 @@ def initialize_bot():
         listen='0.0.0.0',
         port=int(os.environ.get('PORT', 5000)),
         url_path=TOKEN,
-        webhook_url=f'https://reminder-bot-1tlk.onrender.com/{TOKEN}'
+        webhook_url=f'https://reminder-bot-m6pm.onrender.com/{TOKEN}'
     )
 
 # Ініціалізація бота при запуску додатку
