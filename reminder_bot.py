@@ -308,6 +308,10 @@ def webhook():
     update = Update.de_json(request.get_json(force=True), application.bot)
     application.update_queue.put(update)
     return 'ok'
+# Новий ендпоінт для пінгування
+@app.route('/ping', methods=['GET'])
+def ping():
+    return 'Pong!', 200
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error("Exception while handling an update:", exc_info=context.error)
