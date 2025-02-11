@@ -282,11 +282,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Не вдалося надіслати повідомлення користувачу: {e}")
         if priority == 'urgent':
-            context.job_queue.run_repeating(remind_task, interval=3600, first=0, chat_id=assigned_user, data=assigned_user, name='urgent')
+            context.job_queue.run_repeating(remind_task, interval=60, first=0, chat_id=assigned_user, data=assigned_user, name='urgent')
         elif priority == 'medium':
-            context.job_queue.run_repeating(remind_task, interval=21600, first=0, chat_id=assigned_user, data=assigned_user, name='medium')
+            context.job_queue.run_repeating(remind_task, interval=120, first=0, chat_id=assigned_user, data=assigned_user, name='medium')
         elif priority == 'low':
-            reminder_time = time(7, 0, 0)
+            reminder_time = time(17, 40, 0)
             context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=assigned_user, name='low')
         # Використання username з user_data
         await query.edit_message_text(text=f"Завдання додано для {user_data[assigned_user]['username']} з пріоритетом {priority_translation[priority]}!")
