@@ -210,6 +210,12 @@ async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Оберіть користувача, якому хочете призначити завдання:", reply_markup=reply_markup)
     context.user_data['state'] = STATE_SELECT_USER
 
+# Функція для очищення старих нагадувань
+def clear_old_jobs(job_queue, chat_id, name):
+    for job in job_queue.get_jobs_by_name(name):
+        if job.chat_id == chat_id:
+            job.schedule_removal()
+
 # Обробник вибору користувача, пріоритету або завершення завдання
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -281,12 +287,16 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         except Exception as e:
             logger.error(f"Не вдалося надіслати повідомлення користувачу: {e}")
+        # Додавання нагадувань з очищенням старих
         if priority == 'urgent':
+            clear_old_jobs(context.job_queue, assigned_user, 'urgent')  # Очищення старих нагадувань
             context.job_queue.run_repeating(remind_task, interval=60, first=0, chat_id=assigned_user, data=assigned_user, name='urgent')
         elif priority == 'medium':
+            clear_old_jobs(context.job_queue, assigned_user, 'medium')  # Очищення старих нагадувань
             context.job_queue.run_repeating(remind_task, interval=120, first=0, chat_id=assigned_user, data=assigned_user, name='medium')
         elif priority == 'low':
-            reminder_time = time(17, 40, 0)
+            clear_old_jobs(context.job_queue, assigned_user, 'low')  # Очищення старих нагадувань
+            reminder_time = time(18, 20, 0)
             context.job_queue.run_daily(remind_task, time=reminder_time, chat_id=assigned_user, data=assigned_user, name='low')
         # Використання username з user_data
         await query.edit_message_text(text=f"Завдання додано для {user_data[assigned_user]['username']} з пріоритетом {priority_translation[priority]}!")
