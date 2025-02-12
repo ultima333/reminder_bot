@@ -216,6 +216,26 @@ def clear_old_jobs(job_queue, chat_id, name):
         if job.chat_id == chat_id:
             job.schedule_removal()
 
+# Відновлення нагадувань після перезапуску бота
+async def restore_reminders():
+    for user_id, user_tasks in tasks.items():
+        for task in user_tasks:
+            priority = task['priority']
+            chat_id = user_id
+            if priority == 'urgent':
+                application.job_queue.run_repeating(
+                    remind_task, interval=3600, first=0, chat_id=chat_id, data=chat_id, name='urgent'
+                )
+            elif priority == 'medium':
+                application.job_queue.run_repeating(
+                    remind_task, interval=21600, first=0, chat_id=chat_id, data=chat_id, name='medium'
+                )
+            elif priority == 'low':
+                reminder_time = time(7, 0, 0)
+                application.job_queue.run_daily(
+                    remind_task, time=reminder_time, chat_id=chat_id, data=chat_id, name='low'
+                )
+
 # Обробник вибору користувача, пріоритету або завершення завдання
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
