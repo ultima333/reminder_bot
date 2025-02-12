@@ -385,7 +385,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 def initialize_bot():
     global application
-    TOKEN = "8197063148:AAHu3grk5UOnUqqjuTBmqAPvy-7TYfId4qk"
+    TOKEN = "7911352883:AAHiZP7RuhiwCz_ItdMakiQqo23WVxAV_Zw"
     application = (
         ApplicationBuilder()
         .token(TOKEN)
