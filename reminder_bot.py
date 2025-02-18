@@ -29,8 +29,12 @@ DATA_FILE = "tasks_data.json"
 # Завантаження даних з файлу
 def load_data():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r', encoding='utf-8') as file:
-            return json.load(file)
+        try:
+            with open(DATA_FILE, 'r', encoding='utf-8') as file:
+                return json.load(file)
+        except json.JSONDecodeError:
+            logger.error("Помилка декодування JSON. Створюємо новий файл даних.")
+            return {"tasks": {}, "user_data": {}}
     return {"tasks": {}, "user_data": {}}
 
 # Збереження даних у файл
@@ -207,6 +211,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(text="Завдання видалено через неможливість виконання.")
     elif query.data in ['urgent', 'medium', 'low']:
         user_id = query.from_user.id
+        if user_id not in user_data:
+            await query.edit_message_text(text="Користувача не знайдено. Будь ласка, почніть спочатку (/start).")
+            return
         task_text = context.user_data.get('task_text')
         assigned_by = user_data[user_id]['username']
         priority = query.data
