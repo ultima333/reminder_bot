@@ -142,6 +142,12 @@ async def cannot_complete_task(update: Update, context: ContextTypes.DEFAULT_TYP
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Оберіть завдання, яке ви не можете виконати:", reply_markup=reply_markup)
 
+# Функція додавання завдання
+async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    context.user_data['state'] = STATE_ENTER_TASK
+    await update.message.reply_text("Введіть текст завдання:")
+
 # Обробник текстових повідомлень (для кнопок головного меню)
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.chat.type != "private":
