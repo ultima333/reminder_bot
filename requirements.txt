@@ -2,3 +2,4 @@ Flask==2.3.2
 python-telegram-bot[webhooks,job-queue]==20.0
 apscheduler~=3.9.1
 gunicorn==20.1.0
+psycopg2-binary
